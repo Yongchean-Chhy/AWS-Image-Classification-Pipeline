@@ -44,6 +44,10 @@ def predict_dog_breed(image_path, top_k=3):
         label = labels[idx]
         print(f"{i+1:<6}{label:<28}{prob:>6.2f}%")
     print("=" * 45)
+    return {"image_path": image_path, "predictions": [(labels[idx], top_probs[i].item()) for i, idx in enumerate(top_indices)]}
+
+def process_data(image_path: str, top_k: int = 3) -> dict:
+    return {"results": predict_dog_breed(image_path, top_k), "message": "Prediction completed successfully."}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict Dog Breed from Image CLI")
