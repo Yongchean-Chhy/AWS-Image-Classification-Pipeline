@@ -287,5 +287,4 @@ def poll_queue():
 # Start worker
 
 if __name__ == "__main__":
-    check_db_entry()
-    #poll_queue()
+    poll_queue()
