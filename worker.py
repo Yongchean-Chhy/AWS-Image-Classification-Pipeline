@@ -18,8 +18,7 @@ from datetime import datetime, timezone
 REGION = "us-east-1"
 
 QUEUE_URL = (
-    "https://sqs.us-east-1.amazonaws.com/"
-    "967618590980/dog-image-processing"
+    "https://sqs.us-east-1.amazonaws.com/967618590980/dog-image-processing"
 )
 
 s3_client = boto3.client(
@@ -114,6 +113,20 @@ def save_prediction(image_key, label, confidence):
             ),
         )
     print(f"Saved prediction to RDS: {image_key} -> {label} ({confidence:.4f})")
+
+def check_db_entry():
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM predictions;")
+        count = cur.fetchone()[0]
+        print(f"Total entries in predictions table: {count}")
+
+        cur.execute(
+            "SELECT * FROM predictions ORDER BY timestamp DESC LIMIT 5;"
+        )
+        rows = cur.fetchall()
+        for row in rows:
+            print(row)  
 # =========================
 # Run inference
 # =========================
@@ -219,6 +232,7 @@ def process_message(message):
             )
 
         # Save to RDS
+        print("Saving top prediction to RDS...")
         top_prediction = predictions[0]
         print(
             f"key: {key}, label: {top_prediction['label']}, confidence: {top_prediction['probability']:.4f}"
@@ -237,27 +251,28 @@ def process_message(message):
         )
         print("Message deleted from SQS")
 
+        print("Processing complete")
     finally:
         if os.path.exists(image_path):
             os.remove(image_path)
 
-
 # Worker loop
 
 def poll_queue():
-    print("Worker started...")
+    print("Worker started...", flush=True)
     while True:
+        print("Polling SQS queue...", flush=True)
         response = sqs_client.receive_message(
             QueueUrl=QUEUE_URL,
             MaxNumberOfMessages=1,
             WaitTimeSeconds=20
         )
-
         messages = response.get(
             "Messages",
             []
         )
 
+        print(f"Received {len(messages)} messages from SQS")
         if not messages:
             continue
 
@@ -272,4 +287,5 @@ def poll_queue():
 # Start worker
 
 if __name__ == "__main__":
-    poll_queue()
+    check_db_entry()
+    #poll_queue()
